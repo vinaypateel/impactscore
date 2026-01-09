@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Impact Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .screen {
+            display: none;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .screen.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* INPUT SCREEN */
+        .input-container {
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .question {
+            font-size: 32px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 40px;
+            color: #ffffff;
+        }
+        
+        .input-box {
+            width: 100%;
+            min-height: 200px;
+            padding: 24px;
+            font-size: 16px;
+            font-family: inherit;
+            background: #1a1a1a;
+            border: 2px solid #333333;
+            border-radius: 16px;
+            color: #ffffff;
+            resize: vertical;
+            transition: all 0.3s;
+            line-height: 1.6;
+        }
+        
+        .input-box:focus {
+            outline: none;
+            border-color: #8338ec;
+            background: #0a0a0a;
+            box-shadow: 0 0 0 4px rgba(131, 56, 236, 0.1);
+        }
+        
+        .input-box::placeholder {
+            color: #666666;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            margin-top: 24px;
+            font-size: 18px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(131, 56, 236, 0.4);
+        }
+        
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* LOADING SCREEN */
+        .loading-container {
+            text-align: center;
+        }
+        
+        .loading-plant {
+            font-size: 64px;
+            margin-bottom: 24px;
+            animation: grow 2s ease-in-out infinite;
+        }
+        
+        @keyframes grow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .loading-text {
+            font-size: 18px;
+            color: #888888;
+        }
+        
+        /* RESULTS SCREEN */
+        .results-container {
+            max-width: 375px;
+            width: 100%;
+            padding: 40px 20px;
+        }
+        
+        .score-section {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        
+        .score-circle {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 3px solid #333333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+        
+        .score-number {
+            font-size: 56px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff006e 0%, #8338ec 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+        
+        .score-label {
+            font-size: 20px;
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .score-explanation {
+            font-size: 13px;
+            color: #888888;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .score-explanation strong {
+            color: #ffffff;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .score-bar {
+            height: 6px;
+            background: linear-gradient(to right, #48bb78 0%, #ecc94b 50%, #f56565 100%);
+            border-radius: 3px;
+            position: relative;
+            margin-bottom: 8px;
+        }
+        
+        .score-indicator {
+            position: absolute;
+            top: -5px;
+            width: 16px;
+            height: 16px;
+            background: #ff006e;
+            border: 3px solid #000000;
+            border-radius: 50%;
+            box-shadow: 0 0 0 2px #ff006e;
+        }
+        
+        .score-range {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666666;
+        }
+        
+        .score-range span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .range-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .range-dot.green { background: #48bb78; }
+        .range-dot.red { background: #f56565; }
+        
+        .highlights-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .highlight-card {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 18px;
+            border: 1px solid #333333;
+        }
+        
+        .highlight-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #666666;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .highlight-product {
+            font-size: 14px;
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+        
+        .highlight-score {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .highlight-card.worst .highlight-score {
+            color: #f56565;
+        }
+        
+        .highlight-card.best .highlight-score {
+            color: #48bb78;
+        }
+        
+        .products-section {
+            margin-bottom: 16px;
+            display: none;
+        }
+        
+        .products-section.expanded {
+            display: block;
+        }
+        
+        .section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #666666;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        
+        .product-group {
+            margin-bottom: 20px;
+        }
+        
+        .group-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        
+        .group-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+        }
+        
+        .group-icon.red { background: #f56565; }
+        .group-icon.yellow { background: #ecc94b; }
+        .group-icon.green { background: #48bb78; }
+        
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: #ffffff;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .product-name {
+            font-size: 15px;
+            color: #000000;
+            font-weight: 500;
+        }
+        
+        .product-score {
+            font-size: 15px;
+            font-weight: 700;
+            color: #666666;
+        }
+        
+        .view-all-btn {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            background: #1a1a1a;
+            border: 1px solid #333333;
+            border-radius: 12px;
+            color: #888888;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .view-all-btn:hover {
+            background: #2a2a2a;
+            color: #ffffff;
+        }
+        
+        .suggestion-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            padding: 24px;
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        .suggestion-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.95;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        
+        .suggestion-text {
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        
+        .back-btn {
+            width: 100%;
+            padding: 16px;
+            margin-top: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            background: #1a1a1a;
+            border: 2px solid #333333;
+            border-radius: 16px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        
+        .back-btn:hover {
+            background: #2a2a2a;
+            border-color: #444444;
+        }
+        
+        @media (max-width: 600px) {
+            .question {
+                font-size: 24px;
+                margin-bottom: 32px;
+            }
+            
+            .input-box {
+                font-size: 15px;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- INPUT SCREEN -->
+    <div class="screen active" id="inputScreen">
+        <div class="input-container">
+            <h1 class="question">What did you use today?</h1>
+            <textarea 
+                class="input-box" 
+                id="userInput"
+                placeholder="For example: toothpaste 2 times, coffee 2 times, jeans, sneakers, ac running for 4 hours, 2 coca cola 250ml cans, laptop usage 5 hours"
+            ></textarea>
+            <button class="submit-btn" id="submitBtn">Calculate My Impact</button>
+        </div>
+    </div>
+
+    <!-- LOADING SCREEN -->
+    <div class="screen" id="loadingScreen">
+        <div class="loading-container">
+            <div class="loading-plant">🌱</div>
+            <div class="loading-text">Analyzing your impact...</div>
+        </div>
+    </div>
+
+    <!-- RESULTS SCREEN -->
+    <div class="screen" id="resultsScreen">
+        <div class="results-container">
+            <div class="score-section">
+                <div class="score-circle">
+                    <div class="score-number" id="scoreNumber">0</div>
+                </div>
+                <div class="score-label">Your Impact Score</div>
+                <div class="score-explanation">
+                    <strong>Lower is better.</strong>
+                    0 means living in balance.<br>
+                    100 means maximum harm.
+                </div>
+                <div class="score-bar">
+                    <div class="score-indicator" id="scoreIndicator"></div>
+                </div>
+                <div class="score-range">
+                    <span><div class="range-dot green"></div> BALANCE</span>
+                    <span><div class="range-dot red"></div> HARM</span>
+                </div>
+            </div>
+            
+            <div class="highlights-section">
+                <div class="highlight-card worst">
+                    <div class="highlight-label">Most Harmful</div>
+                    <div class="highlight-product" id="worstProduct">—</div>
+                    <div class="highlight-score" id="worstScore">—</div>
+                </div>
+                <div class="highlight-card best">
+                    <div class="highlight-label">Least Harmful</div>
+                    <div class="highlight-product" id="bestProduct">—</div>
+                    <div class="highlight-score" id="bestScore">—</div>
+                </div>
+            </div>
+            
+            <button class="view-all-btn" id="viewAllBtn">View All Products</button>
+            
+            <div class="products-section" id="productsSection">
+                <div class="section-title">ALL PRODUCTS</div>
+                <div id="productsList"></div>
+            </div>
+            
+            <div class="suggestion-card">
+                <div class="suggestion-label">Suggestion</div>
+                <div class="suggestion-text" id="suggestionText"></div>
+            </div>
+            
+            <button class="back-btn" id="backBtn">Track Another Day</button>
+        </div>
+    </div>
+
+    <script>
+        const inputScreen = document.getElementById('inputScreen');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const resultsScreen = document.getElementById('resultsScreen');
+        const submitBtn = document.getElementById('submitBtn');
+        const userInput = document.getElementById('userInput');
+        const backBtn = document.getElementById('backBtn');
+        const viewAllBtn = document.getElementById('viewAllBtn');
+        const productsSection = document.getElementById('productsSection');
+
+        submitBtn.addEventListener('click', analyzeImpact);
+        backBtn.addEventListener('click', () => {
+            inputScreen.classList.add('active');
+            resultsScreen.classList.remove('active');
+            productsSection.classList.remove('expanded');
+        });
+        
+        viewAllBtn.addEventListener('click', () => {
+            productsSection.classList.toggle('expanded');
+            viewAllBtn.textContent = productsSection.classList.contains('expanded') 
+                ? 'Hide Products' 
+                : 'View All Products';
+        });
+
+        async function analyzeImpact() {
+            const input = userInput.value.trim();
+            if (!input) return;
+
+            // Show loading
+            inputScreen.classList.remove('active');
+            loadingScreen.classList.add('active');
+            submitBtn.disabled = true;
+
+            try {
+                // Call Anthropic API to analyze products
+                const response = await fetch("https://api.anthropic.com/v1/messages", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        model: "claude-sonnet-4-20250514",
+                        max_tokens: 1000,
+                        messages: [{
+                            role: "user",
+                            content: `Analyze these products for environmental and social impact. Score each 0-100 (0=no harm, 100=maximum harm). Consider: corporate extraction, ecological damage, labor exploitation, plastic waste, resource use.
+
+CRITICAL FILTERING RULE: All suggested alternatives must contain NO animal products (no dairy, eggs, meat, honey, leather, wool, etc.). This is a hard filter - never suggest animal-derived products.
+
+CRITICAL LANGUAGE RULE: Never mention "vegan", "plant-based", "animal agriculture", or explain WHY alternatives are lower impact in terms of animals. Just present them as "lowest impact" or "minimal harm" options without ideology.
+
+Products: ${input}
+
+Return ONLY valid JSON (no markdown, no preamble):
+{
+  "products": [
+    {"name": "Product Name", "score": 75, "category": "high|medium|low"}
+  ],
+  "averageScore": 65,
+  "worstProduct": {"name": "X", "score": 88, "reason": "why it's harmful (corporate extraction, waste, resource use - never mention animals)"},
+  "bestProduct": {"name": "Y", "score": 22, "reason": "why it's good"},
+  "alternative": "specific swap suggestion - describe as 'lowest impact' or 'minimal harm' without mentioning vegan/plant-based/animals"
+}`
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                const text = data.content[0].text;
+                
+                // Parse JSON from response
+                const cleanText = text.replace(/```json|```/g, '').trim();
+                const analysis = JSON.parse(cleanText);
+                
+                displayResults(analysis);
+                
+            } catch (error) {
+                console.error('Analysis error:', error);
+                alert('Something went wrong. Please try again.');
+                loadingScreen.classList.remove('active');
+                inputScreen.classList.add('active');
+                submitBtn.disabled = false;
+            }
+        }
+
+        function displayResults(analysis) {
+            // Update score
+            const score = Math.round(analysis.averageScore);
+            document.getElementById('scoreNumber').textContent = score;
+            
+            // Update score indicator position
+            const indicator = document.getElementById('scoreIndicator');
+            indicator.style.left = `${score}%`;
+            
+            // Update highlights
+            document.getElementById('worstProduct').textContent = analysis.worstProduct.name;
+            document.getElementById('worstScore').textContent = analysis.worstProduct.score;
+            
+            if (analysis.bestProduct) {
+                document.getElementById('bestProduct').textContent = analysis.bestProduct.name;
+                document.getElementById('bestScore').textContent = analysis.bestProduct.score;
+            }
+            
+            // Build full products list
+            const high = analysis.products.filter(p => p.category === 'high');
+            const medium = analysis.products.filter(p => p.category === 'medium');
+            const low = analysis.products.filter(p => p.category === 'low');
+            
+            let html = '';
+            
+            if (high.length > 0) {
+                html += `
+                    <div class="product-group">
+                        <div class="group-header">
+                            <div class="group-icon red"></div>
+                            High Harm
+                        </div>
+                        ${high.map(p => `
+                            <div class="product-item">
+                                <div class="product-name">${p.name}</div>
+                                <div class="product-score">${p.score}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            if (medium.length > 0) {
+                html += `
+                    <div class="product-group">
+                        <div class="group-header">
+                            <div class="group-icon yellow"></div>
+                            Some Harm
+                        </div>
+                        ${medium.map(p => `
+                            <div class="product-item">
+                                <div class="product-name">${p.name}</div>
+                                <div class="product-score">${p.score}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            if (low.length > 0) {
+                html += `
+                    <div class="product-group">
+                        <div class="group-header">
+                            <div class="group-icon green"></div>
+                            Low Harm
+                        </div>
+                        ${low.map(p => `
+                            <div class="product-item">
+                                <div class="product-name">${p.name}</div>
+                                <div class="product-score">${p.score}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            document.getElementById('productsList').innerHTML = html;
+            
+            // Update suggestion
+            document.getElementById('suggestionText').textContent = analysis.alternative;
+            
+            // Reset view all button
+            productsSection.classList.remove('expanded');
+            viewAllBtn.textContent = 'View All Products';
+            
+            // Show results
+            loadingScreen.classList.remove('active');
+            resultsScreen.classList.add('active');
+            submitBtn.disabled = false;
+        }
+    </script>
+</body>
+</html>
