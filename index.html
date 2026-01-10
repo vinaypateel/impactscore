@@ -503,52 +503,25 @@
             const input = userInput.value.trim();
             if (!input) return;
 
-            // Show loading
             inputScreen.classList.remove('active');
             loadingScreen.classList.add('active');
             submitBtn.disabled = true;
 
             try {
-                // Call Anthropic API to analyze products
-                const response = await fetch("https://api.anthropic.com/v1/messages", {
-                    method: "POST",
+                // Call our serverless function instead of Anthropic directly
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
                     headers: {
-                        "Content-Type": "application/json",
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        model: "claude-sonnet-4-20250514",
-                        max_tokens: 1000,
-                        messages: [{
-                            role: "user",
-                            content: `Analyze these products for environmental and social impact. Score each 0-100 (0=no harm, 100=maximum harm). Consider: corporate extraction, ecological damage, labor exploitation, plastic waste, resource use.
-
-CRITICAL FILTERING RULE: All suggested alternatives must contain NO animal products (no dairy, eggs, meat, honey, leather, wool, etc.). This is a hard filter - never suggest animal-derived products.
-
-CRITICAL LANGUAGE RULE: Never mention "vegan", "plant-based", "animal agriculture", or explain WHY alternatives are lower impact in terms of animals. Just present them as "lowest impact" or "minimal harm" options without ideology.
-
-Products: ${input}
-
-Return ONLY valid JSON (no markdown, no preamble):
-{
-  "products": [
-    {"name": "Product Name", "score": 75, "category": "high|medium|low"}
-  ],
-  "averageScore": 65,
-  "worstProduct": {"name": "X", "score": 88, "reason": "why it's harmful (corporate extraction, waste, resource use - never mention animals)"},
-  "bestProduct": {"name": "Y", "score": 22, "reason": "why it's good"},
-  "alternative": "specific swap suggestion - describe as 'lowest impact' or 'minimal harm' without mentioning vegan/plant-based/animals"
-}`
-                        }]
-                    })
+                    body: JSON.stringify({ products: input })
                 });
 
-                const data = await response.json();
-                const text = data.content[0].text;
-                
-                // Parse JSON from response
-                const cleanText = text.replace(/```json|```/g, '').trim();
-                const analysis = JSON.parse(cleanText);
-                
+                if (!response.ok) {
+                    throw new Error('Analysis failed');
+                }
+
+                const analysis = await response.json();
                 displayResults(analysis);
                 
             } catch (error) {
@@ -561,15 +534,12 @@ Return ONLY valid JSON (no markdown, no preamble):
         }
 
         function displayResults(analysis) {
-            // Update score
             const score = Math.round(analysis.averageScore);
             document.getElementById('scoreNumber').textContent = score;
             
-            // Update score indicator position
             const indicator = document.getElementById('scoreIndicator');
             indicator.style.left = `${score}%`;
             
-            // Update highlights
             document.getElementById('worstProduct').textContent = analysis.worstProduct.name;
             document.getElementById('worstScore').textContent = analysis.worstProduct.score;
             
@@ -578,7 +548,6 @@ Return ONLY valid JSON (no markdown, no preamble):
                 document.getElementById('bestScore').textContent = analysis.bestProduct.score;
             }
             
-            // Build full products list
             const high = analysis.products.filter(p => p.category === 'high');
             const medium = analysis.products.filter(p => p.category === 'medium');
             const low = analysis.products.filter(p => p.category === 'low');
@@ -637,15 +606,11 @@ Return ONLY valid JSON (no markdown, no preamble):
             }
             
             document.getElementById('productsList').innerHTML = html;
-            
-            // Update suggestion
             document.getElementById('suggestionText').textContent = analysis.alternative;
             
-            // Reset view all button
             productsSection.classList.remove('expanded');
             viewAllBtn.textContent = 'View All Products';
             
-            // Show results
             loadingScreen.classList.remove('active');
             resultsScreen.classList.add('active');
             submitBtn.disabled = false;
